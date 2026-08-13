@@ -1,0 +1,20 @@
+{
+  "name": "tas-model-test-suite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test:browser": "playwright test",
+    "test:browser:ui": "playwright test --ui",
+    "export:onnx": "python scripts/export_onnx.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "onnxruntime-web": "^1.19.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "yaml": "^2.5.0"
+  }
+}

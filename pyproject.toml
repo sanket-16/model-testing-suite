@@ -1,0 +1,31 @@
+[project]
+name = "tas-model-test-suite"
+version = "0.1.0"
+description = "Baseline test suite comparing server vs browser object-detection inference"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ultralytics>=8.3.0",
+    "onnx>=1.16.0",
+    "onnxruntime-gpu>=1.18.0; platform_system!='Darwin'",
+    "onnxruntime>=1.18.0; platform_system=='Darwin'",
+    "pyyaml>=6.0",
+    "pillow>=10.0.0",
+    "numpy>=1.26.0",
+    "opencv-python-headless>=4.9.0",
+    "pytest>=8.0.0",
+    "requests>=2.31.0",
+    "imageio-ffmpeg>=0.5.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.5.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/server"]
+pythonpath = ["."]
+addopts = "-v"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

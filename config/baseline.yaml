@@ -1,0 +1,63 @@
+# Shared baseline specs for server CPU vs GPU vs browser comparison.
+
+defaults:
+  imgsz: 640
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  warmup_runs: 1
+  max_latency_ms: 5000
+  max_duration_sec: 5
+  match_iou: 0.5
+
+# Runtimes to benchmark (server_gpu skips if CUDA unavailable)
+runtimes:
+  - server_cpu
+  - server_gpu
+  - browser
+
+models:
+  yolov8:
+    name: yolov8n
+    backend: ultralytics
+    weights: models/yolov8n.pt
+    onnx: models/yolov8n.onnx
+    classes: 80
+    max_latency_ms:
+      server_cpu: 5000
+      server_gpu: 2000
+      browser: 8000
+
+  rt_detr_l:
+    name: rtdetr-l
+    backend: ultralytics
+    weights: models/rtdetr-l.pt
+    onnx: models/rtdetr-l.onnx
+    classes: 80
+    max_latency_ms:
+      server_cpu: 8000
+      server_gpu: 3000
+      browser: 15000
+
+  rt_detr_s:
+    name: rtdetr-s
+    backend: onnx
+    onnx: models/rtdetr-s.onnx
+    onnx_url: https://huggingface.co/onnx-community/rtdetr_r18vd_coco_o365/resolve/main/onnx/model.onnx
+    classes: 80
+    max_latency_ms:
+      server_cpu: 5000
+      server_gpu: 2000
+      browser: 12000
+
+fixtures:
+  videos:
+    - fixtures/videos/uav_seq_a.mp4
+    - fixtures/videos/uav_seq_b.mp4
+    - fixtures/videos/uav_seq_c.mp4
+    - fixtures/videos/uav_seq_d.mp4
+
+output:
+  dir: results/output
+  server_cpu_subdir: server_cpu
+  server_gpu_subdir: server_gpu
+  browser_subdir: browser

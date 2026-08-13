@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+
+# Weights & ONNX (download / export)
+models/*.onnx
+models/*.pt
+*.pt
+public/models/*.onnx
+
+# Fixtures (downloaded / generated)
+fixtures/videos/*.mp4
+fixtures/cache/
+public/fixtures/*.mp4
+
+# Test outputs
+results/
+test-results/
+playwright-report/
+blob-report/
+
+# IDE
+.vscode/
+.idea/
