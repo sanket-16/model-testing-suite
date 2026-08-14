@@ -38,7 +38,18 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 
 Note: RT-DETR-S uses ONNX Runtime. If `onnxruntime-gpu` cannot load the CUDA EP (e.g. CUDA 13 mismatch), it falls back to CPU.
 
-## Run tests
+## Live demo
+
+```bash
+# Terminal 1 — browser page
+npm run dev
+
+# Terminal 2 — server WHEP (WebRTC) stream (GPU if CUDA is available)
+python scripts/live_server.py
+```
+
+Open http://localhost:5173 — **Start browser** runs ONNX in Chromium; **Watch server stream** pulls annotated video over WHEP. Direct player: http://127.0.0.1:8090/
+
 
 ```bash
 # Server CPU + GPU (GPU skipped if CUDA unavailable)
