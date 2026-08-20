@@ -16,7 +16,7 @@ startBrowser.addEventListener("click", async () => {
   startBrowser.disabled = true;
   try {
     await window.runBrowserVideoInference({
-      modelKey: modelEl.value as "yolov8" | "rt_detr_l" | "rt_detr_s",
+      modelKey: modelEl.value as "yolov8" | "yolov10" | "rt_detr_l" | "rt_detr_s",
       videoUrl: `/fixtures/${clipEl.value}.mp4`,
       imgsz: 640,
       confThreshold: 0.25,

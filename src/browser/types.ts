@@ -30,7 +30,7 @@ export interface HarnessResult {
   result?: VideoInferencePayload;
 }
 
-export type ModelKey = "yolov8" | "rt_detr_l" | "rt_detr_s";
+export type ModelKey = "yolov8" | "yolov10" | "rt_detr_l" | "rt_detr_s";
 
 declare global {
   interface Window {

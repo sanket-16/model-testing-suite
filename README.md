@@ -3,9 +3,12 @@
 Baseline suite comparing **server** (CPU / GPU) vs **browser** (ONNX Runtime Web) object detection on **VisDrone-VID UAV video**.
 
 Models:
+- **YOLOv10n** (Ultralytics) — currently selected via `benchmark_models`
 - **YOLOv8n** (Ultralytics)
 - **RT-DETR-L** (Ultralytics)
 - **RT-DETR-S** (R18vd COCO ONNX — Ultralytics has no pretrained S weights)
+
+Set `benchmark_models` in `config/baseline.yaml` to control which models the suite runs (e.g. `[yolov10]` only). Omit it to run every model under `models`.
 
 Fixtures are consecutive VisDrone-VID frames encoded to H.264 MP4 (browser-playable). Every frame in the first `max_duration_sec` is processed (no stride).
 

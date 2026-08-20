@@ -5,6 +5,7 @@ ort.env.wasm.numThreads = 1;
 
 const MODEL_PATHS: Record<ModelKey, string> = {
   yolov8: "/models/yolov8n.onnx",
+  yolov10: "/models/yolov10n.onnx",
   rt_detr_l: "/models/rtdetr-l.onnx",
   rt_detr_s: "/models/rtdetr-s.onnx",
 };

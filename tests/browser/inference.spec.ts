@@ -7,7 +7,10 @@ import { parse as parseYaml } from "yaml";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const baseline = parseYaml(readFileSync(resolve(ROOT, "config/baseline.yaml"), "utf-8"));
 
-const MODELS = Object.keys(baseline.models);
+const MODELS: string[] =
+  Array.isArray(baseline.benchmark_models) && baseline.benchmark_models.length > 0
+    ? baseline.benchmark_models
+    : Object.keys(baseline.models);
 const { imgsz, conf_threshold, iou_threshold, max_duration_sec } = baseline.defaults;
 const defaultMaxLatency = baseline.defaults.max_latency_ms;
 const outputDir = resolve(ROOT, baseline.output.dir, baseline.output.browser_subdir);
