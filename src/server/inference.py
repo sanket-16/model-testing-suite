@@ -63,13 +63,13 @@ class ServerModel(ABC):
         pass
 
 
-class YoloV8Model(ServerModel):
-    model_key = "yolov8"
+class UltralyticsYoloModel(ServerModel):
+    """YOLOv8 / YOLOv10 (and other Ultralytics YOLO weight files)."""
 
-    def __init__(self, weights: str | Path, device: DeviceName) -> None:
+    def __init__(self, model_key: str, weights: str | Path, device: DeviceName) -> None:
+        self.model_key = model_key
         self.device = device
         self.model = YOLO(str(weights))
-        # Move weights to target device once
         self.model.to("cuda:0" if device == "cuda" else "cpu")
 
     def predict_frame(
@@ -85,6 +85,10 @@ class YoloV8Model(ServerModel):
                 verbose=False,
             )
         )
+
+
+# Back-compat alias
+YoloV8Model = UltralyticsYoloModel
 
 
 class RtDetrUltralyticsModel(ServerModel):
@@ -251,8 +255,8 @@ def load_server_model(model_key: str, device: DeviceName = "cpu") -> ServerModel
         return RtDetrOnnxModel(model_key, onnx_path, device)
 
     weights = ROOT / model_cfg["weights"]
-    if model_key == "yolov8":
-        return YoloV8Model(weights, device)
+    if model_key in {"yolov8", "yolov10"} or model_key.startswith("yolo"):
+        return UltralyticsYoloModel(model_key, weights, device)
     if model_key.startswith("rt_detr"):
         return RtDetrUltralyticsModel(model_key, weights, device)
     raise ValueError(f"Unknown model key: {model_key}")

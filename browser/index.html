@@ -2,19 +2,109 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Browser Inference Harness</title>
+    <title>TAS live demo — browser vs server</title>
     <style>
-      body { font-family: system-ui, sans-serif; padding: 1rem; }
-      #status { margin-top: 1rem; white-space: pre-wrap; }
-      #preview { max-width: 640px; margin-top: 1rem; border: 1px solid #ccc; }
+      :root {
+        color-scheme: dark;
+        --bg: #111;
+        --panel: #1b1b1b;
+        --line: #333;
+        --text: #eee;
+        --muted: #9a9a9a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 1.25rem;
+      }
+      h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.35rem; }
+      p.sub { margin: 0 0 1rem; color: var(--muted); font-size: 0.9rem; }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: end;
+        margin-bottom: 1rem;
+      }
+      label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; color: var(--muted); }
+      select, button {
+        font: inherit;
+        padding: 0.4rem 0.7rem;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+      }
+      button {
+        background: #2f6fed;
+        border-color: #2f6fed;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.85rem;
+      }
+      .panel h2 { font-size: 0.95rem; margin: 0 0 0.5rem; }
+      canvas, #server-video {
+        width: 100%;
+        height: auto;
+        background: #000;
+        border-radius: 4px;
+        display: block;
+        object-fit: contain;
+      }
+      #video, #infer-canvas { display: none; }
     </style>
   </head>
   <body>
-    <h1>Browser Inference Harness</h1>
-    <video id="video" crossorigin="anonymous" playsinline muted hidden></video>
-    <canvas id="canvas" width="640" height="360"></canvas>
-    <canvas id="infer-canvas" width="640" height="640" hidden></canvas>
-    <div id="status">Idle</div>
+    <h1>TAS live demo</h1>
+    <p class="sub">Left: ONNX in this browser. Right: WHEP pull of annotated WebRTC video from Python (Chromium).</p>
+    <div class="controls">
+      <label>Model
+        <select id="model">
+          <option value="yolov10" selected>YOLOv10n</option>
+          <option value="yolov8">YOLOv8n</option>
+          <option value="rt_detr_s">RT-DETR-S</option>
+          <option value="rt_detr_l">RT-DETR-L (slow in browser)</option>
+        </select>
+      </label>
+      <label>Clip
+        <select id="clip">
+          <option value="uav_seq_a">uav_seq_a</option>
+          <option value="uav_seq_b">uav_seq_b</option>
+          <option value="uav_seq_c">uav_seq_c</option>
+          <option value="uav_seq_d">uav_seq_d</option>
+        </select>
+      </label>
+      <button id="start-browser" type="button">Start browser</button>
+      <button id="start-server" type="button">Watch server stream</button>
+    </div>
+    <div class="grid">
+      <section class="panel">
+        <h2>Browser (ONNX Runtime Web)</h2>
+        <video id="video" crossorigin="anonymous" playsinline muted></video>
+        <canvas id="canvas" width="640" height="360"></canvas>
+        <canvas id="infer-canvas" width="640" height="640"></canvas>
+        <div id="status">Idle — click Start browser</div>
+      </section>
+      <section class="panel">
+        <h2>Server (WHEP / WebRTC)</h2>
+        <video id="server-video" autoplay playsinline muted></video>
+        <div id="server-status">Idle — start <code>python scripts/live_server.py</code> then click Watch server stream</div>
+      </section>
+    </div>
     <script type="module" src="/main.ts"></script>
   </body>
 </html>

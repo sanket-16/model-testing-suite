@@ -15,7 +15,23 @@ runtimes:
   - server_gpu
   - browser
 
+# Only these models are run by pytest / export / parity.
+# Omit or set to null to run every entry under models.
+benchmark_models:
+  - yolov10
+
 models:
+  yolov10:
+    name: yolov10n
+    backend: ultralytics
+    weights: models/yolov10n.pt
+    onnx: models/yolov10n.onnx
+    classes: 80
+    max_latency_ms:
+      server_cpu: 5000
+      server_gpu: 2000
+      browser: 8000
+
   yolov8:
     name: yolov8n
     backend: ultralytics

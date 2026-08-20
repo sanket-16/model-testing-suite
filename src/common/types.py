@@ -68,8 +68,20 @@ def load_baseline_config() -> dict[str, Any]:
 
 
 def model_keys(config: dict[str, Any] | None = None) -> list[str]:
+    """Return model keys to benchmark.
+
+    If ``benchmark_models`` is set in config, only those keys are returned
+    (in that order). Otherwise every key under ``models`` is used.
+    """
     cfg = config or load_baseline_config()
-    return list(cfg["models"].keys())
+    all_keys = list(cfg["models"].keys())
+    selected = cfg.get("benchmark_models")
+    if not selected:
+        return all_keys
+    unknown = [k for k in selected if k not in cfg["models"]]
+    if unknown:
+        raise ValueError(f"Unknown benchmark_models entries: {unknown}")
+    return list(selected)
 
 
 def get_max_latency_ms(config: dict[str, Any], model_key: str, runtime: str) -> float:

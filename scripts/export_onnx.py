@@ -30,7 +30,7 @@ def export_ultralytics(model_key: str) -> Path:
 
     onnx_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if model_key == "yolov8":
+    if model_key in {"yolov8", "yolov10"} or model_key.startswith("yolo"):
         model = YOLO(str(weights))
     elif model_key.startswith("rt_detr"):
         model = RTDETR(str(weights))
@@ -79,8 +79,10 @@ def export_model(model_key: str) -> Path:
 
 
 def main() -> None:
+    from src.common.types import model_keys
+
     cfg = load_baseline_config()
-    for key in cfg["models"]:
+    for key in model_keys(cfg):
         export_model(key)
 
 
