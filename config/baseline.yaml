@@ -14,11 +14,21 @@ runtimes:
   - server_cpu
   - server_gpu
   - browser
+  - browser_webgpu
+
+# Browser ONNX Runtime Web execution providers to exercise in Playwright.
+# wasm = CPU WASM (existing). webgpu = browser GPU via WebGPU.
+browser_execution_providers:
+  - wasm
+  - webgpu
 
 # Only these models are run by pytest / export / parity.
 # Omit or set to null to run every entry under models.
 benchmark_models:
   - yolov10
+  - yolov8
+  - rt_detr_s
+  - rt_detr_l
 
 models:
   yolov10:
@@ -31,6 +41,7 @@ models:
       server_cpu: 5000
       server_gpu: 2000
       browser: 8000
+      browser_webgpu: 4000
 
   yolov8:
     name: yolov8n
@@ -42,6 +53,7 @@ models:
       server_cpu: 5000
       server_gpu: 2000
       browser: 8000
+      browser_webgpu: 4000
 
   rt_detr_l:
     name: rtdetr-l
@@ -53,6 +65,7 @@ models:
       server_cpu: 8000
       server_gpu: 3000
       browser: 15000
+      browser_webgpu: 8000
 
   rt_detr_s:
     name: rtdetr-s
@@ -64,6 +77,7 @@ models:
       server_cpu: 5000
       server_gpu: 2000
       browser: 12000
+      browser_webgpu: 6000
 
 fixtures:
   videos:
@@ -77,3 +91,4 @@ output:
   server_cpu_subdir: server_cpu
   server_gpu_subdir: server_gpu
   browser_subdir: browser
+  browser_webgpu_subdir: browser_webgpu
