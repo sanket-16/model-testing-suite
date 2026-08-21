@@ -43,7 +43,7 @@ class FrameResult:
 @dataclass
 class InferenceResult:
     model: str
-    runtime: str  # "server_cpu" | "server_gpu" | "browser"
+    runtime: str  # "server_cpu" | "server_gpu" | "browser" | "browser_webgpu"
     source: str
     frames: list[FrameResult] = field(default_factory=list)
     latency_ms: float = 0.0  # mean per-frame latency

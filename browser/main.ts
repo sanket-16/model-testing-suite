@@ -4,6 +4,7 @@ const WHEP_BASE = "http://127.0.0.1:8090";
 
 const modelEl = document.getElementById("model") as HTMLSelectElement;
 const clipEl = document.getElementById("clip") as HTMLSelectElement;
+const browserEpEl = document.getElementById("browser-ep") as HTMLSelectElement;
 const startBrowser = document.getElementById("start-browser") as HTMLButtonElement;
 const startServer = document.getElementById("start-server") as HTMLButtonElement;
 const serverVideo = document.getElementById("server-video") as HTMLVideoElement;
@@ -22,6 +23,7 @@ startBrowser.addEventListener("click", async () => {
       confThreshold: 0.25,
       iouThreshold: 0.45,
       maxDurationSec: 5,
+      executionProvider: browserEpEl.value as "wasm" | "webgpu",
     });
   } finally {
     startBrowser.disabled = false;

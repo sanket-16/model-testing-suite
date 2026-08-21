@@ -88,12 +88,18 @@
           <option value="uav_seq_d">uav_seq_d</option>
         </select>
       </label>
+      <label>Browser EP
+        <select id="browser-ep">
+          <option value="wasm" selected>WASM (CPU)</option>
+          <option value="webgpu">WebGPU</option>
+        </select>
+      </label>
       <button id="start-browser" type="button">Start browser</button>
       <button id="start-server" type="button">Watch server stream</button>
     </div>
     <div class="grid">
       <section class="panel">
-        <h2>Browser (ONNX Runtime Web)</h2>
+        <h2>Browser (ONNX Runtime Web — WASM or WebGPU)</h2>
         <video id="video" crossorigin="anonymous" playsinline muted></video>
         <canvas id="canvas" width="640" height="360"></canvas>
         <canvas id="infer-canvas" width="640" height="640"></canvas>

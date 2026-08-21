@@ -1,7 +1,16 @@
-import * as ort from "onnxruntime-web/wasm";
-import type { Detection, FrameResult, HarnessResult, ModelKey } from "./types";
+// webgpu entry includes JSEP wasm needed for WebGPU; wasm EP still works.
+import * as ort from "onnxruntime-web/webgpu";
+import type {
+  BrowserExecutionProvider,
+  Detection,
+  FrameResult,
+  HarnessResult,
+  ModelKey,
+} from "./types";
+import { runtimeForProvider } from "./types";
 
 ort.env.wasm.numThreads = 1;
+ort.env.wasm.wasmPaths = "/ort/";
 
 const MODEL_PATHS: Record<ModelKey, string> = {
   yolov8: "/models/yolov8n.onnx",
@@ -25,12 +34,33 @@ const COLORS = ["#ff3838", "#38ff38", "#3838ff", "#ffff38", "#ff38ff", "#38ffff"
 
 const sessions = new Map<string, ort.InferenceSession>();
 
-async function getSession(modelKey: ModelKey): Promise<ort.InferenceSession> {
-  if (sessions.has(modelKey)) return sessions.get(modelKey)!;
-  const session = await ort.InferenceSession.create(MODEL_PATHS[modelKey], {
-    executionProviders: ["wasm"],
+async function ensureWebGpuAvailable(): Promise<void> {
+  if (!("gpu" in navigator) || !navigator.gpu) {
+    throw new Error("WebGPU is not available in this browser");
+  }
+  const adapter = await navigator.gpu.requestAdapter({
+    powerPreference: "high-performance",
   });
-  sessions.set(modelKey, session);
+  if (!adapter) {
+    throw new Error("No WebGPU adapter found (GPU blocked or unsupported)");
+  }
+}
+
+async function getSession(
+  modelKey: ModelKey,
+  executionProvider: BrowserExecutionProvider,
+): Promise<ort.InferenceSession> {
+  const cacheKey = `${modelKey}:${executionProvider}`;
+  if (sessions.has(cacheKey)) return sessions.get(cacheKey)!;
+
+  if (executionProvider === "webgpu") {
+    await ensureWebGpuAvailable();
+  }
+
+  const session = await ort.InferenceSession.create(MODEL_PATHS[modelKey], {
+    executionProviders: [executionProvider],
+  });
+  sessions.set(cacheKey, session);
   return session;
 }
 
@@ -289,11 +319,13 @@ async function runBrowserVideoInference(opts: {
   confThreshold: number;
   iouThreshold: number;
   maxDurationSec: number | null;
+  executionProvider?: BrowserExecutionProvider;
 }): Promise<HarnessResult> {
   const status = document.getElementById("status")!;
+  const executionProvider: BrowserExecutionProvider = opts.executionProvider ?? "wasm";
   try {
-    status.textContent = `Loading ${opts.modelKey}...`;
-    const session = await getSession(opts.modelKey);
+    status.textContent = `Loading ${opts.modelKey} (${executionProvider})...`;
+    const session = await getSession(opts.modelKey, executionProvider);
     const video = await loadVideo(opts.videoUrl);
     const fps = 30; // fixture metadata; stepped by frame index
     const maxFrames =
@@ -377,7 +409,9 @@ async function runBrowserVideoInference(opts: {
       drawDetectionsOnCanvas(dctx, detections);
 
       frameResults.push({ frame_index: frameIndex, latency_ms, detections });
-      status.textContent = `Frame ${frameIndex + 1}/${maxFrames} — ${detections.length} dets, ${latency_ms.toFixed(0)}ms`;
+      status.textContent =
+        `Frame ${frameIndex + 1}/${maxFrames} [${executionProvider}] — ` +
+        `${detections.length} dets, ${latency_ms.toFixed(0)}ms`;
     }
 
     recorder.stop();
@@ -387,13 +421,16 @@ async function runBrowserVideoInference(opts: {
     const meanLatency =
       frameResults.reduce((s, f) => s + f.latency_ms, 0) / (frameResults.length || 1);
 
-    status.textContent = `Done: ${frameResults.length} frames, avg ${meanLatency.toFixed(0)}ms/frame`;
+    status.textContent =
+      `Done [${executionProvider}]: ${frameResults.length} frames, ` +
+      `avg ${meanLatency.toFixed(0)}ms/frame`;
 
     return {
       ok: true,
       result: {
         model: opts.modelKey,
-        runtime: "browser",
+        runtime: runtimeForProvider(executionProvider),
+        execution_provider: executionProvider,
         source: opts.videoUrl,
         latency_ms: meanLatency,
         imgsz: opts.imgsz,
