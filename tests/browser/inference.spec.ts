@@ -57,7 +57,9 @@ for (const executionProvider of PROVIDERS) {
       test(`${modelKey} ${executionProvider} video inference on ${videoName}`, async ({
         page,
       }) => {
-        test.setTimeout(600_000);
+        // WASM RT-DETR-L is ~3s/frame; 5s clips need well over the old 8–10m guards.
+        const testTimeoutMs = executionProvider === "webgpu" ? 600_000 : 1_200_000;
+        test.setTimeout(testTimeoutMs);
 
         const onnxPath = resolve(ROOT, baseline.models[modelKey].onnx);
         try {
@@ -70,45 +72,72 @@ for (const executionProvider of PROVIDERS) {
         await page.waitForFunction(() => typeof window.runBrowserVideoInference === "function");
 
         if (executionProvider === "webgpu") {
-          const webgpuOk = await page.evaluate(async () => {
-            if (!("gpu" in navigator) || !navigator.gpu) return false;
-            const adapter = await navigator.gpu.requestAdapter();
-            return Boolean(adapter);
+          const webgpuInfo = await page.evaluate(async () => {
+            if (!("gpu" in navigator) || !navigator.gpu) {
+              return { ok: false, detail: "navigator.gpu missing" };
+            }
+            const adapter = await navigator.gpu.requestAdapter({
+              powerPreference: "high-performance",
+            });
+            if (!adapter) {
+              return { ok: false, detail: "requestAdapter() returned null" };
+            }
+            const info =
+              "info" in adapter && adapter.info
+                ? // @ts-expect-error GPUAdapter.info is still settling in TS DOM libs
+                  `${adapter.info.vendor || "?"} / ${adapter.info.architecture || "?"} / ${adapter.info.description || "?"}`
+                : "adapter ok (no info API)";
+            return { ok: true, detail: info };
           });
-          test.skip(!webgpuOk, "WebGPU adapter not available in this Chromium");
+          console.log(`  [webgpu] adapter: ${webgpuInfo.detail}`);
+          test.skip(!webgpuInfo.ok, `WebGPU unavailable: ${webgpuInfo.detail}`);
         }
 
         const videoUrl = `/fixtures/${videoName}`;
-        const result = await page.evaluate(
-          async ({
-            modelKey,
-            videoUrl,
-            imgsz,
-            conf_threshold,
-            iou_threshold,
-            max_duration_sec,
-            executionProvider,
-          }) => {
-            return window.runBrowserVideoInference({
+        // Fail faster than the test timeout if ORT/WebGPU hangs on create/run.
+        const evaluateTimeoutMs = executionProvider === "webgpu" ? 240_000 : 900_000;
+        const result = await Promise.race([
+          page.evaluate(
+            async ({
               modelKey,
               videoUrl,
               imgsz,
-              confThreshold: conf_threshold,
-              iouThreshold: iou_threshold,
-              maxDurationSec: max_duration_sec ?? null,
+              conf_threshold,
+              iou_threshold,
+              max_duration_sec,
               executionProvider,
-            });
-          },
-          {
-            modelKey,
-            videoUrl,
-            imgsz,
-            conf_threshold,
-            iou_threshold,
-            max_duration_sec,
-            executionProvider,
-          },
-        );
+            }) => {
+              return window.runBrowserVideoInference({
+                modelKey,
+                videoUrl,
+                imgsz,
+                confThreshold: conf_threshold,
+                iouThreshold: iou_threshold,
+                maxDurationSec: max_duration_sec ?? null,
+                executionProvider,
+              });
+            },
+            {
+              modelKey,
+              videoUrl,
+              imgsz,
+              conf_threshold,
+              iou_threshold,
+              max_duration_sec,
+              executionProvider,
+            },
+          ),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(
+                new Error(
+                  `Browser ${executionProvider} inference hung for ${modelKey}/${videoName} ` +
+                    `(>${evaluateTimeoutMs / 1000}s). Often WebGPU session create on dual-GPU laptops.`,
+                ),
+              );
+            }, evaluateTimeoutMs);
+          }),
+        ]);
 
         expect(result.ok, result.error).toBe(true);
         expect(result.result!.frames.length).toBeGreaterThan(0);

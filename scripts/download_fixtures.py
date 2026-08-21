@@ -27,12 +27,12 @@ ZIP_PATH = CACHE_DIR / "VisDrone2019-VID-val.zip"
 EXTRACT_DIR = CACHE_DIR / "VisDrone2019-VID-val"
 
 # Friendly fixture name -> VisDrone sequence folder
-# Chosen after listing the zip; update if sequences differ on disk.
+# Must match sequences present in VisDrone2019-VID-val.zip (and FIXTURE_SEQUENCES).
 SEQUENCES = {
     "uav_seq_a.mp4": "uav0000086_00000_v",
-    "uav_seq_b.mp4": "uav0000071_03240_v",
-    "uav_seq_c.mp4": "uav0000138_00000_v",
-    "uav_seq_d.mp4": "uav0000188_00000_v",
+    "uav_seq_b.mp4": "uav0000117_02622_v",
+    "uav_seq_c.mp4": "uav0000137_00458_v",
+    "uav_seq_d.mp4": "uav0000182_00000_v",
 }
 
 
@@ -175,6 +175,18 @@ def download_fixtures() -> None:
             public = ROOT / "public" / "fixtures" / name
             public.parent.mkdir(parents=True, exist_ok=True)
             public.write_bytes(out.read_bytes())
+
+            # Extract matching VisDrone-VID annotations for quality eval
+            ann_member = f"VisDrone2019-VID-val/annotations/{seq}.txt"
+            ann_dest = ROOT / "fixtures" / "annotations" / f"{seq}.txt"
+            try:
+                ann_bytes = zf.read(ann_member)
+            except KeyError:
+                print(f"  warning: no annotation {ann_member}")
+            else:
+                ann_dest.parent.mkdir(parents=True, exist_ok=True)
+                ann_dest.write_bytes(ann_bytes)
+                print(f"  annotations -> {ann_dest.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

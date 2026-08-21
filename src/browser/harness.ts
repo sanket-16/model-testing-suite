@@ -34,7 +34,7 @@ const COLORS = ["#ff3838", "#38ff38", "#3838ff", "#ffff38", "#ff38ff", "#38ffff"
 
 const sessions = new Map<string, ort.InferenceSession>();
 
-async function ensureWebGpuAvailable(): Promise<void> {
+async function ensureWebGpuAvailable(): Promise<GPUAdapter> {
   if (!("gpu" in navigator) || !navigator.gpu) {
     throw new Error("WebGPU is not available in this browser");
   }
@@ -43,6 +43,24 @@ async function ensureWebGpuAvailable(): Promise<void> {
   });
   if (!adapter) {
     throw new Error("No WebGPU adapter found (GPU blocked or unsupported)");
+  }
+  return adapter;
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${label} timed out after ${ms}ms`)),
+          ms,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -54,12 +72,22 @@ async function getSession(
   if (sessions.has(cacheKey)) return sessions.get(cacheKey)!;
 
   if (executionProvider === "webgpu") {
-    await ensureWebGpuAvailable();
+    const adapter = await ensureWebGpuAvailable();
+    const info =
+      "info" in adapter && adapter.info
+        ? // @ts-expect-error GPUAdapter.info is still settling in TS DOM libs
+          `${adapter.info.vendor || "?"} / ${adapter.info.description || "?"}`
+        : "unknown adapter";
+    console.log(`[webgpu] using adapter: ${info}`);
   }
 
-  const session = await ort.InferenceSession.create(MODEL_PATHS[modelKey], {
-    executionProviders: [executionProvider],
-  });
+  const session = await withTimeout(
+    ort.InferenceSession.create(MODEL_PATHS[modelKey], {
+      executionProviders: [executionProvider],
+    }),
+    executionProvider === "webgpu" ? 90_000 : 120_000,
+    `InferenceSession.create(${modelKey}, ${executionProvider})`,
+  );
   sessions.set(cacheKey, session);
   return session;
 }
@@ -161,6 +189,7 @@ function decodeUltralytics(
       });
     }
   } else if (dims.length === 3 && dims[2] === 6) {
+    // YOLOv10-style export: [1, N, 6] = x1,y1,x2,y2,conf,cls in letterbox pixels
     const numDet = dims[1];
     for (let i = 0; i < numDet; i++) {
       const base = i * 6;
@@ -177,6 +206,45 @@ function decodeUltralytics(
         y2: Math.min(origH, (data[base + 3] - padY) / scale),
       });
     }
+  }
+  return detections;
+}
+
+/** Ultralytics RT-DETR-L ONNX: [1, 300, 6] = cx,cy,w,h (0-1 of imgsz), conf, cls. */
+function decodeUltralyticsRtDetr(
+  output: ort.Tensor,
+  confThreshold: number,
+  scale: number,
+  padX: number,
+  padY: number,
+  origW: number,
+  origH: number,
+  imgsz: number,
+): Detection[] {
+  const data = output.data as Float32Array;
+  const dims = output.dims;
+  if (!(dims.length === 3 && dims[2] === 6)) return [];
+
+  const detections: Detection[] = [];
+  const numDet = dims[1];
+  for (let i = 0; i < numDet; i++) {
+    const base = i * 6;
+    const conf = data[base + 4];
+    if (conf < confThreshold) continue;
+    const cls = Math.round(data[base + 5]);
+    const cx = data[base];
+    const cy = data[base + 1];
+    const bw = data[base + 2];
+    const bh = data[base + 3];
+    detections.push({
+      class_id: cls,
+      class_name: getClassName(cls),
+      confidence: conf,
+      x1: Math.max(0, ((cx - bw / 2) * imgsz - padX) / scale),
+      y1: Math.max(0, ((cy - bh / 2) * imgsz - padY) / scale),
+      x2: Math.min(origW, ((cx + bw / 2) * imgsz - padX) / scale),
+      y2: Math.min(origH, ((cy + bh / 2) * imgsz - padY) / scale),
+    });
   }
   return detections;
 }
@@ -383,6 +451,18 @@ async function runBrowserVideoInference(opts: {
         raw = decodeHfRtDetr(
           outputs,
           session.outputNames,
+          opts.confThreshold,
+          scale,
+          padX,
+          padY,
+          video.videoWidth,
+          video.videoHeight,
+          opts.imgsz,
+        );
+      } else if (opts.modelKey === "rt_detr_l") {
+        const outputName = session.outputNames[0];
+        raw = decodeUltralyticsRtDetr(
+          outputs[outputName] as ort.Tensor,
           opts.confThreshold,
           scale,
           padX,

@@ -65,6 +65,10 @@ npx playwright test
 # Cross-runtime comparison
 pytest tests/test_parity.py -v -s
 
+# VisDrone ground-truth quality (mAP@0.5 / precision / recall)
+python scripts/evaluate_visdrone.py
+python scripts/generate_skystream_3050ti_quality_report.py
+
 # Print latency summary
 python scripts/compare_results.py --summary
 ```
@@ -77,6 +81,7 @@ python scripts/compare_results.py --summary
 | `results/server_gpu/` | Per-run JSON |
 | `results/browser/` | Per-run JSON |
 | `results/comparisons/` | CPU/GPU/browser reports |
+| `results/quality/` | VisDrone mAP / precision / recall |
 | `results/output/server_cpu/` | Annotated `.mp4` |
 | `results/output/server_gpu/` | Annotated `.mp4` |
 | `results/output/browser/` | Annotated `.webm` |
